@@ -1889,9 +1889,12 @@ kbd {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(var(--statusbar-height) + var(--kb-offset));
+    bottom: var(--kb-offset);
     z-index: 25;
     transition: bottom 0.15s ease-out;
+  }
+  #mobile-touch-bar-editor {
+    bottom: calc(var(--statusbar-height) + var(--kb-offset));
   }
   .mobile-touch-bar.visible {
     display: flex;
