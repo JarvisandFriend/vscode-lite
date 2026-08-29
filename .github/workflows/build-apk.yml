@@ -48,7 +48,7 @@ jobs:
 
 
       - name: Add Android platform (if missing)
-        run: test -d android || npx cap add android
+        run: test -f android/app/build.gradle || npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync android
