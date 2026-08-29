@@ -42,6 +42,10 @@ jobs:
 
       - name: Build web app
         run: npm run build
+        env:
+          VITE_API_URL: https://rtgcortex-vscode-lite.hf.space
+          VITE_WS_URL: wss://rtgcortex-vscode-lite.hf.space
+
 
       - name: Add Android platform (if missing)
         run: test -d android || npx cap add android
