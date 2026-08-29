@@ -48,7 +48,7 @@ jobs:
 
 
       - name: Add Android platform (if missing)
-        run: test -f android/app/build.gradle || npx cap add android
+        run: rm -rf android && npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync android
@@ -63,7 +63,7 @@ jobs:
       - name: Use stable debug keystore
         run: |
           mkdir -p ~/.android
-          cp android/keystore/debug.keystore ~/.android/debug.keystore
+          cp keystore/debug.keystore ~/.android/debug.keystore
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
