@@ -188,8 +188,10 @@ class TerminalManager {
 
     const term = new Terminal({
       theme: this.getThemeColors(this.currentTheme),
-      fontFamily: "'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace",
+      fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace",
       fontSize: window.innerWidth <= 768 ? 15 : 13,
+      fontWeight: window.innerWidth <= 768 ? "700" : "normal",
+      fontWeightBold: "bold",
       lineHeight: 1.25,
       cursorBlink: true,
       cursorStyle: "block",

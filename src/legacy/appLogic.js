@@ -1567,6 +1567,7 @@ export async function bootApp() {
     if (bar) {
       bar.classList.toggle("visible");
     }
+    document.getElementById("mobile-view-switch")?.classList.toggle("keyboard-open", bar?.classList.contains("visible"));
     editorManager.layout();
     terminalManager.fitActive();
   });

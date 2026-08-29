@@ -1784,11 +1784,17 @@ kbd {
   :root {
     --activitybar-width: 44px;
     --sidebar-width: 280px;
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-code: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
   }
 
   html, body {
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
+  }
+
+  .terminal-instance, .xterm, .xterm-screen {
+    font-weight: 700 !important;
   }
 
   .titlebar-center {
@@ -1897,7 +1903,7 @@ kbd {
   }
 
   .mobile-view-switch {
-    display: flex !important;
+    display: flex;
     position: fixed;
     bottom: calc(var(--statusbar-height) + 10px);
     left: 50%;
@@ -1925,6 +1931,9 @@ kbd {
   .mobile-view-switch-btn.active {
     background-color: var(--accent-color);
     color: #fff;
+  }
+  .mobile-view-switch.keyboard-open {
+    display: none !important;
   }
 }
 
