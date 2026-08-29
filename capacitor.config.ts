@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yourcompany.vscodelite',
+  appId: 'com.code.vscodelite',
   appName: 'VS Code Lite',
   webDir: 'dist',
   server: {
