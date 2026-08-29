@@ -1899,6 +1899,7 @@ kbd {
     transition: bottom 0.15s ease-out;
   }
   #mobile-touch-bar-editor {
+    left: var(--activitybar-width);
     bottom: calc(var(--statusbar-height) + var(--kb-offset));
   }
   .mobile-touch-bar.visible {
