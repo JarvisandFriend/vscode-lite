@@ -51,6 +51,17 @@ jobs:
         run: |
           mkdir -p ~/.android
           cp keystore/debug.keystore ~/.android/debug.keystore
+
+      - name: Debug signing config
+        working-directory: android
+        run: |
+          echo "--- build.gradle signing/buildTypes ---"
+          grep -A15 "signingConfigs\|buildTypes" app/build.gradle || echo "no match found"
+          echo "--- keystore in use ---"
+          ls -la ~/.android/debug.keystore
+          sha256sum ~/.android/debug.keystore
+          echo "--- committed keystore for comparison ---"
+          sha256sum ../keystore/debug.keystore
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
