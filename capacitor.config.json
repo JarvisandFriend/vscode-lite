@@ -1,0 +1,9 @@
+{
+  "appId": "com.yourcompany.vscodelite",
+  "appName": "VS Code Lite",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}
