@@ -1556,16 +1556,23 @@ export async function bootApp() {
     });
   }
 
-  // Mobile Touch Bar & Keypad
-  const mobileBar = document.getElementById("mobile-touch-bar");
+  // Mobile Touch Bars & Keypad (Editor bar + Terminal bar, shown by active view)
+  const mobileBarEditor = document.getElementById("mobile-touch-bar-editor");
+  const mobileBarTerminal = document.getElementById("mobile-touch-bar-terminal");
+
   document.getElementById("btn-mobile-keyboard-toggle")?.addEventListener("click", () => {
-    if (mobileBar) {
-      mobileBar.classList.toggle("visible");
-      editorManager.layout();
+    const workbenchBody = document.querySelector(".workbench-body");
+    const showTerminal = workbenchBody?.classList.contains("show-terminal");
+    const bar = showTerminal ? mobileBarTerminal : mobileBarEditor;
+    if (bar) {
+      bar.classList.toggle("visible");
     }
+    editorManager.layout();
+    terminalManager.fitActive();
   });
 
-  document.querySelectorAll(".touch-key").forEach(btn => {
+  // Editor symbol/key bar (unchanged: inserts text or sends Tab/Esc)
+  mobileBarEditor?.querySelectorAll(".touch-key[data-insert], .touch-key[data-key]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const insert = btn.dataset.insert;
@@ -1584,6 +1591,56 @@ export async function bootApp() {
     if (activeTabPath) editorManager.onSaveCallback(activeTabPath, editorManager.getValue());
   });
   document.getElementById("btn-touch-run")?.addEventListener("click", runCurrentFile);
+
+  // Terminal control bar — real key/escape-sequence behavior + toggleable Ctrl modifier
+  let ctrlModifierActive = false;
+  const btnTermCtrl = document.getElementById("btn-term-ctrl");
+
+  function setCtrlModifier(active) {
+    ctrlModifierActive = active;
+    btnTermCtrl?.classList.toggle("ctrl-active", active);
+  }
+
+  btnTermCtrl?.addEventListener("click", (e) => {
+    e.preventDefault();
+    setCtrlModifier(!ctrlModifierActive);
+  });
+
+  mobileBarTerminal?.querySelectorAll(".touch-key[data-term-key], .touch-key[data-term-insert]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const termKey = btn.dataset.termKey;
+      const termInsert = btn.dataset.termInsert;
+
+      if (termInsert) {
+        if (ctrlModifierActive) {
+          // Ctrl + punctuation isn't meaningful for most of these; just send the char.
+          terminalManager.sendKey(termInsert);
+          setCtrlModifier(false);
+        } else {
+          terminalManager.sendKey(termInsert);
+        }
+        return;
+      }
+
+      if (termKey) {
+        terminalManager.sendKey(termKey);
+      }
+    });
+  });
+
+  // Any letter typed while Ctrl modifier is active gets sent as a real Ctrl+<letter>
+  // combo to the terminal (handles cases beyond the quick ^C/^D/^Z/^L buttons).
+  document.addEventListener("keydown", (e) => {
+    if (!ctrlModifierActive) return;
+    const workbenchBody = document.querySelector(".workbench-body");
+    if (!workbenchBody?.classList.contains("show-terminal")) return;
+    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+      e.preventDefault();
+      terminalManager.sendCtrlCombo(e.key);
+      setCtrlModifier(false);
+    }
+  });
 
   // Mobile Viewport Handling (Handle on-screen keyboard resizing)
   if (window.visualViewport) {
@@ -1717,6 +1774,15 @@ export async function bootApp() {
         if (view === "terminal") terminalManager.fitActive();
       }, 300);
     }
+
+    // Auto-focus terminal input when the terminal pane comes into view so
+    // the on-screen keyboard behaves sensibly without an extra tap.
+    workbenchBody.addEventListener("transitionend", (e) => {
+      if (e.target !== workbenchBody.querySelector(".panel")) return;
+      if (isMobile() && mobileView === "terminal") {
+        terminalManager.fitActive();
+      }
+    });
 
     function syncSwipeMode() {
       if (isMobile()) {

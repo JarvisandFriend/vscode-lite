@@ -24,7 +24,7 @@ class EditorManager {
     this.previewType = null; // 'markdown' | 'html' | null
     this.isWordWrapOn = false;
     this.isMinimapOn = true;
-    this.fontSize = 13;
+    this.fontSize = window.innerWidth <= 768 ? 16 : 13;
     this.tabSize = 4;
     this.syntaxCheckTimeout = null;
   }
@@ -481,7 +481,7 @@ class EditorManager {
 
     // Bold, Italic, Strikethrough
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/\*([^*]+)*/g, '<em>$1</em>');
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
 
     // Links & Images

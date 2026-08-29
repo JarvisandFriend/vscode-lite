@@ -189,7 +189,7 @@ class TerminalManager {
     const term = new Terminal({
       theme: this.getThemeColors(this.currentTheme),
       fontFamily: "'Cascadia Code', 'Fira Code', Consolas, 'Courier New', monospace",
-      fontSize: 13,
+      fontSize: window.innerWidth <= 768 ? 15 : 13,
       lineHeight: 1.25,
       cursorBlink: true,
       cursorStyle: "block",
@@ -329,6 +329,20 @@ class TerminalManager {
     else if (key === "Right") data = "\x1b[C";
     else if (key === "Left") data = "\x1b[D";
 
+    socket.send(JSON.stringify({ type: "input", data }));
+  }
+
+  // Sends a real Ctrl+<letter> combo (e.g. "a" -> Ctrl-A, ASCII 0x01) to the
+  // active terminal, matching what a physical keyboard's Ctrl key would send.
+  sendCtrlCombo(letter) {
+    if (!this.activeId || !this.sockets.has(this.activeId)) return;
+    const socket = this.sockets.get(this.activeId);
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!letter || letter.length !== 1) return;
+
+    const code = letter.toUpperCase().charCodeAt(0) - 64; // A=1 .. Z=26
+    if (code < 1 || code > 26) return;
+    const data = String.fromCharCode(code);
     socket.send(JSON.stringify({ type: "input", data }));
   }
 

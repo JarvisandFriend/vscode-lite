@@ -203,6 +203,10 @@ html, body {
   line-height: 1.4;
 }
 
+.mobile-view-switch {
+  display: none;
+}
+
 #app {
   display: flex;
   flex-direction: column;
@@ -1305,15 +1309,23 @@ kbd {
   background-color: var(--bg-input);
   border: 1px solid var(--border-input);
   color: var(--text-bright);
-  padding: 4px 10px;
+  padding: 3px 8px;
+  min-width: 26px;
+  height: 26px;
   border-radius: 4px;
   font-family: var(--font-code);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.touch-key .codicon {
+  font-size: 13px;
 }
 
 .touch-key:active {
@@ -1328,6 +1340,12 @@ kbd {
 .touch-action-run {
   background-color: #238636;
   color: #ffffff;
+}
+
+.touch-key-ctrl.ctrl-active {
+  background-color: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4) inset;
 }
 
 /* ==========================================================================
@@ -1768,6 +1786,11 @@ kbd {
     --sidebar-width: 280px;
   }
 
+  html, body {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
   .titlebar-center {
     width: auto;
     max-width: 50%;
@@ -1803,10 +1826,6 @@ kbd {
     display: none;
   }
 
-  .mobile-touch-bar {
-    display: flex;
-  }
-
   /* Mobile Full-Screen Swipeable Editor/Terminal */
   .workbench-body.mobile-swipe {
     position: relative;
@@ -1821,6 +1840,8 @@ kbd {
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translateX(0);
     z-index: 5;
+    display: flex;
+    flex-direction: column;
   }
   .workbench-body.mobile-swipe .splitter-v {
     display: none !important;
@@ -1847,8 +1868,36 @@ kbd {
   .workbench-body.mobile-swipe .panel.hidden {
     display: flex !important;
   }
-  .mobile-view-switch {
+
+  /* Touch bars: hidden by default, only shown via JS toggle (keyboard icon).
+     Each bar is a flex child of its own pane (.editor-container / .panel),
+     so it never overlaps tabs or floats over the wrong view. */
+  .mobile-touch-bar {
+    display: none;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .mobile-touch-bar.visible {
     display: flex;
+  }
+  /* Editor's own children (monaco, watermark, previews) flex to fill
+     remaining space above the touch bar instead of being pushed off. */
+  .workbench-body.mobile-swipe .editor-container > *:not(.mobile-touch-bar) {
+    flex: 1;
+    min-height: 0;
+  }
+  .workbench-body.mobile-swipe .panel {
+    display: flex;
+    flex-direction: column;
+  }
+  .workbench-body.mobile-swipe .panel .panel-content {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .mobile-view-switch {
+    display: flex !important;
     position: fixed;
     bottom: calc(var(--statusbar-height) + 10px);
     left: 50%;
