@@ -1566,11 +1566,47 @@ export async function bootApp() {
     const bar = showTerminal ? mobileBarTerminal : mobileBarEditor;
     if (bar) {
       bar.classList.toggle("visible");
+      if (bar.classList.contains("visible")) {
+        (showTerminal ? mobileBarEditor : mobileBarTerminal)?.classList.remove("visible");
+      }
     }
-    document.getElementById("mobile-view-switch")?.classList.toggle("keyboard-open", bar?.classList.contains("visible"));
     editorManager.layout();
     terminalManager.fitActive();
   });
+
+  // Track the real on-screen keyboard height via visualViewport and expose
+  // it as --kb-offset so the touch bars and view-switch pill sit right
+  // above the keyboard instead of being hidden below it. Falls back to
+  // hiding the view-switch pill whenever either touch bar is visible, in
+  // case visualViewport isn't supported.
+  (function setupKeyboardOffset() {
+    const root = document.documentElement;
+    const viewSwitch = document.getElementById("mobile-view-switch");
+    const vv = window.visualViewport;
+
+    function anyTouchBarVisible() {
+      return mobileBarEditor?.classList.contains("visible") || mobileBarTerminal?.classList.contains("visible");
+    }
+
+    function updateOffset() {
+      let kbHeight = 0;
+      if (vv) {
+        kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      }
+      root.style.setProperty("--kb-offset", `${kbHeight}px`);
+      const keyboardVisible = kbHeight > 60; // ignore small chrome UI shifts
+      viewSwitch?.classList.toggle("keyboard-visible", keyboardVisible || anyTouchBarVisible());
+    }
+
+    if (vv) {
+      vv.addEventListener("resize", updateOffset);
+      vv.addEventListener("scroll", updateOffset);
+    }
+    // Re-check whenever a touch bar toggles, since the bar itself can be
+    // shown/hidden independently of the keyboard (e.g. via the icon).
+    document.getElementById("btn-mobile-keyboard-toggle")?.addEventListener("click", () => setTimeout(updateOffset, 0));
+    updateOffset();
+  })();
 
   // Editor symbol/key bar (unchanged: inserts text or sends Tab/Esc)
   mobileBarEditor?.querySelectorAll(".touch-key[data-insert], .touch-key[data-key]").forEach(btn => {
