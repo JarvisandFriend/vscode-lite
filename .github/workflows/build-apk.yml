@@ -59,6 +59,11 @@ jobs:
           sed -i "s/versionCode .*/versionCode ${{ steps.ver.outputs.code }}/" app/build.gradle
           sed -i "s/versionName .*/versionName \"${{ steps.ver.outputs.name }}\"/" app/build.gradle
 
+
+      - name: Use stable debug keystore
+        run: |
+          mkdir -p ~/.android
+          cp android/keystore/debug.keystore ~/.android/debug.keystore
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
