@@ -1588,13 +1588,28 @@ export async function bootApp() {
       return mobileBarEditor?.classList.contains("visible") || mobileBarTerminal?.classList.contains("visible");
     }
 
+    let rafPending = false;
     function updateOffset() {
-      let kbHeight = 0;
-      if (vv) {
-        kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      }
-      root.style.setProperty("--kb-offset", `${kbHeight}px`);
-      const keyboardVisible = kbHeight > 60; // ignore small chrome UI shifts
+      if (rafPending) return;
+      rafPending = true;
+      requestAnimationFrame(() => {
+        rafPending = false;
+        let kbHeight = 0;
+        if (vv) {
+          kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        }
+        const current = parseFloat(getComputedStyle(root).getPropertyValue("--kb-offset")) || 0;
+        if (Math.abs(current - kbHeight) >= 1) {
+          root.style.setProperty("--kb-offset", `${kbHeight}px`);
+        }
+        const keyboardVisible = kbHeight > 60; // ignore small chrome UI shifts
+        viewSwitch?.classList.toggle("keyboard-visible", keyboardVisible || anyTouchBarVisible());
+      });
+    }
+
+    function syncViewSwitchVisibility() {
+      const current = parseFloat(getComputedStyle(root).getPropertyValue("--kb-offset")) || 0;
+      const keyboardVisible = current > 60;
       viewSwitch?.classList.toggle("keyboard-visible", keyboardVisible || anyTouchBarVisible());
     }
 
@@ -1604,12 +1619,19 @@ export async function bootApp() {
     }
     // Re-check whenever a touch bar toggles, since the bar itself can be
     // shown/hidden independently of the keyboard (e.g. via the icon).
-    document.getElementById("btn-mobile-keyboard-toggle")?.addEventListener("click", () => setTimeout(updateOffset, 0));
+    // This runs synchronously (no rAF wait) since it's a discrete click,
+    // not a high-frequency viewport event.
+    document.getElementById("btn-mobile-keyboard-toggle")?.addEventListener("click", syncViewSwitchVisibility);
     updateOffset();
   })();
 
   // Editor symbol/key bar (unchanged: inserts text or sends Tab/Esc)
   mobileBarEditor?.querySelectorAll(".touch-key[data-insert], .touch-key[data-key]").forEach(btn => {
+    // Prevent the button from stealing focus on tap — a focus shift away
+    // from Monaco's hidden textarea is what dismisses the on-screen
+    // keyboard. mousedown/pointerdown fires before focus changes, so
+    // preventDefault() there keeps focus (and the keyboard) in place.
+    btn.addEventListener("pointerdown", (e) => e.preventDefault());
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const insert = btn.dataset.insert;
@@ -1638,12 +1660,14 @@ export async function bootApp() {
     btnTermCtrl?.classList.toggle("ctrl-active", active);
   }
 
+  btnTermCtrl?.addEventListener("pointerdown", (e) => e.preventDefault());
   btnTermCtrl?.addEventListener("click", (e) => {
     e.preventDefault();
     setCtrlModifier(!ctrlModifierActive);
   });
 
   mobileBarTerminal?.querySelectorAll(".touch-key[data-term-key], .touch-key[data-term-insert]").forEach(btn => {
+    btn.addEventListener("pointerdown", (e) => e.preventDefault());
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const termKey = btn.dataset.termKey;

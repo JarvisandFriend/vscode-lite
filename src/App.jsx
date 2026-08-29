@@ -69,11 +69,11 @@ export default function App() {
             <div className="activity-item" data-panel="github" title="Branches & Remote">
               <i className="codicon codicon-git-branch"></i>
             </div>
-          </div>
-          <div className="activitybar-bottom">
             <div className="activity-item" id="btn-mobile-keyboard-toggle" title="Toggle Mobile Keypad">
               <i className="codicon codicon-keyboard"></i>
             </div>
+          </div>
+          <div className="activitybar-bottom">
             <div className="activity-item" id="btn-settings" title="Settings & Themes">
               <i className="codicon codicon-settings-gear"></i>
             </div>

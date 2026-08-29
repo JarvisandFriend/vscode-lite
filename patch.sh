@@ -212,6 +212,10 @@ html, body {
   display: none;
 }
 
+#btn-mobile-keyboard-toggle {
+  display: none;
+}
+
 #app {
   display: flex;
   flex-direction: column;
@@ -1797,6 +1801,10 @@ kbd {
   html, body {
     font-size: 16px;
     font-weight: 600;
+  }
+
+  #btn-mobile-keyboard-toggle {
+    display: flex;
   }
 
   .terminal-instance, .xterm, .xterm-screen {
