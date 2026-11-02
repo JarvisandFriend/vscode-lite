@@ -1,4 +1,5 @@
 import { Terminal } from '@xterm/xterm';
+import { getBase } from './tunnel.js';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 
@@ -207,7 +208,7 @@ class TerminalManager {
     this.fitAddons.set(id, fitAddon);
 
     // Setup WebSocket
-    const wsBase = import.meta.env.VITE_WS_URL || (() => {
+    const wsBase = getBase().ws || (() => {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       return `${protocol}//${window.location.host}`;
     })();

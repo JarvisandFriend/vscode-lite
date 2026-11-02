@@ -36,6 +36,7 @@ jobs:
         env:
           VITE_API_URL: https://rtgcortex-vscode-lite.hf.space
           VITE_WS_URL: wss://rtgcortex-vscode-lite.hf.space
+          VITE_GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
       - name: Add Android platform (if missing)
         run: rm -rf android && npx cap add android
       - name: Sync Capacitor

@@ -1,16 +1,19 @@
 import { EditorManager } from './editorManager.js';
 import { TerminalManager } from './terminalManager.js';
+import { baseReady, getBase } from './tunnel.js';
+import './connectButton.js';
 
 // Backend base URL, injected at build time from .env (see .env.example).
 // Relative "/api/..." calls made anywhere below are transparently rewritten
 // to point at this host, since a packaged mobile app has no local server to
 // call a relative path against.
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
 
 const _fetch = window.fetch.bind(window);
-window.fetch = (input, init) => {
+window.fetch = async (input, init) => {
   if (typeof input === 'string' && input.startsWith('/api/')) {
-    input = API_BASE + input;
+    await baseReady;
+    input = getBase().http + input;
     init = { ...(init || {}), headers: { ...((init && init.headers) || {}), 'x-token': import.meta.env.VITE_TOKEN || '' } };
   }
   return _fetch(input, init);
@@ -2293,7 +2296,7 @@ export async function bootApp() {
 
 function initFileWatcher(loadTree) {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const wsBase = import.meta.env.VITE_WS_URL || (proto + "://" + location.hostname + (location.port ? ":" + location.port : ""));
+  const wsBase = getBase().ws || (proto + "://" + location.hostname + (location.port ? ":" + location.port : ""));
   const wsUrl = wsBase.replace(/\/+$/, "") + "/ws/watch";
   let ws, reconnectTimer, debounceTimer;
   function connect() {
