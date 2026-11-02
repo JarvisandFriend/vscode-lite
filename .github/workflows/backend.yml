@@ -16,8 +16,6 @@ jobs:
           node-version: 20
       - run: cd server && npm install --no-audit --no-fund
       - name: Start backend and Cloudflare tunnel
-        env:
-          APP_TOKEN: ${{ secrets.APP_TOKEN }}
         run: |
           git config user.name dev
           git config user.email dev@users.noreply.github.com
@@ -43,7 +41,16 @@ jobs:
           done
           if [ "$OK" != 1 ]; then echo "unreachable"; cat cf.log server.log; exit 1; fi
           echo "REACHABLE: $URL" | tee -a $GITHUB_STEP_SUMMARY
-          GH_TOKEN=${{ secrets.GIST_TOKEN }} gh api -X PATCH gists/862321431bac372752a422b9cca2fe01 -f "files[tunnel.json][content]={\"url\":\"$URL\",\"ts\":$(date +%s)}" > /dev/null
-          echo "PUBLISHED gist 862321431bac372752a422b9cca2fe01" | tee -a $GITHUB_STEP_SUMMARY
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B tunnel
+          echo "{\"url\":\"$URL\",\"ts\":$(date +%s)}" > tunnel.json
+          git add tunnel.json
+          git commit -m "tunnel: $URL" || true
+          git push -u origin tunnel --force
+          echo "PUBLISHED tunnel to branch tunnel" | tee -a $GITHUB_STEP_SUMMARY
+          if [ -n "${{ secrets.GIST_TOKEN }}" ]; then
+            GH_TOKEN=${{ secrets.GIST_TOKEN }} gh api -X PATCH gists/862321431bac372752a422b9cca2fe01 -f "files[tunnel.json][content]={\"url\":\"$URL\",\"ts\":$(date +%s)}" > /dev/null 2>&1 || true
+          fi
       - name: Keep alive (5h)
         run: sleep 18000

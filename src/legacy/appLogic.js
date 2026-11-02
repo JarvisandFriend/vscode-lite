@@ -14,7 +14,6 @@ window.fetch = async (input, init) => {
   if (typeof input === 'string' && input.startsWith('/api/')) {
     await baseReady;
     input = getBase().http + input;
-    init = { ...(init || {}), headers: { ...((init && init.headers) || {}), 'x-token': import.meta.env.VITE_TOKEN || '' } };
   }
   return _fetch(input, init);
 };

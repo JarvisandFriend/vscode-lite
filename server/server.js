@@ -9,8 +9,8 @@ import { promisify } from 'util';
 
 const run = promisify(execFile);
 const ROOT = path.resolve(process.env.WORKSPACE || process.cwd());
-const TOKEN = process.env.APP_TOKEN;
-if (!TOKEN) { console.error('APP_TOKEN required'); process.exit(1); }
+// APP_TOKEN is optional; each user runs their own ephemeral backend in their own CI container.
+const TOKEN = process.env.APP_TOKEN || '';
 
 const app = express();
 app.use(express.json({ limit: '100mb' }));
@@ -21,9 +21,12 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
-app.use('/api', (req, res, next) =>
-  (req.get('x-token') === TOKEN || req.query.token === TOKEN)
-    ? next() : res.status(401).json({ error: 'unauthorized' }));
+app.use('/api', (req, res, next) => {
+  if (TOKEN && req.get('x-token') !== TOKEN && req.query.token !== TOKEN) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  next();
+});
 
 const safe = p => {
   const f = path.resolve(ROOT, String(p || '').replace(/^\/+/, ''));
@@ -231,7 +234,8 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (req, sock, head) => {
   const u = new URL(req.url, 'http://x');
-  if (u.pathname !== '/ws/terminal' || u.searchParams.get('token') !== TOKEN) return sock.destroy();
+  if (u.pathname !== '/ws/terminal') return sock.destroy();
+  if (TOKEN && u.searchParams.get('token') !== TOKEN) return sock.destroy();
   wss.handleUpgrade(req, sock, head, ws => wss.emit('connection', ws));
 });
 wss.on('connection', ws => {

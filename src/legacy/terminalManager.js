@@ -212,15 +212,15 @@ class TerminalManager {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       return `${protocol}//${window.location.host}`;
     })();
-    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/terminal?token=${encodeURIComponent(import.meta.env.VITE_TOKEN || "")}`;
+    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/terminal`;
     const socket = new WebSocket(wsUrl);
-    console.log('[term] ws', wsUrl.replace(/token=[^&]*/, 'token=***'), 'tunnel:', getBase().tunnel);
+    console.log('[term] ws', wsUrl, 'tunnel:', getBase().tunnel);
     socket.addEventListener('open', () => console.log('[term] open'));
     socket.addEventListener('close', (e) => console.log('[term] close', e.code));
     socket.addEventListener('error', () => console.log('[term] error'));
     this.sockets.set(id, socket);
     const dbg = (m) => term.write('\r\n\x1b[33m[dbg] ' + m + '\x1b[0m\r\n');
-    dbg('url ' + wsUrl.replace(/token=[^&]*/, 'token=***') + ' tunnel=' + getBase().tunnel);
+    dbg('url ' + wsUrl + ' tunnel=' + getBase().tunnel);
     socket.addEventListener('open', () => dbg('open'));
     socket.addEventListener('error', () => dbg('error'));
     socket.addEventListener('close', (e) => dbg('close ' + e.code));
