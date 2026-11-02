@@ -9,22 +9,14 @@ import { promisify } from 'util';
 
 const run = promisify(execFile);
 const ROOT = path.resolve(process.env.WORKSPACE || process.cwd());
-// APP_TOKEN is optional; each user runs their own ephemeral backend in their own CI container.
-const TOKEN = process.env.APP_TOKEN || '';
 
 const app = express();
 app.use(express.json({ limit: '100mb' }));
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Headers', 'Content-Type,x-token');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
   res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
-app.use('/api', (req, res, next) => {
-  if (TOKEN && req.get('x-token') !== TOKEN && req.query.token !== TOKEN) {
-    return res.status(401).json({ error: 'unauthorized' });
-  }
   next();
 });
 
@@ -235,7 +227,6 @@ const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (req, sock, head) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname !== '/ws/terminal') return sock.destroy();
-  if (TOKEN && u.searchParams.get('token') !== TOKEN) return sock.destroy();
   wss.handleUpgrade(req, sock, head, ws => wss.emit('connection', ws));
 });
 wss.on('connection', ws => {

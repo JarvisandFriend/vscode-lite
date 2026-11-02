@@ -4,7 +4,6 @@ const UPSTREAM_OWNER = 'engineermarcus';
 const REPO = 'vscode-lite';
 const WF = 'backend.yml';
 const RE = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
-const FALLBACK_GIST = 'https://gist.githubusercontent.com/engineermarcus/862321431bac372752a422b9cca2fe01/raw/tunnel.json';
 
 const state = { http: '', ws: '', tunnel: false, owner: UPSTREAM_OWNER, repo: REPO };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -20,8 +19,9 @@ async function alive(u) {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), 4000);
   try {
-    const r = await fetch(u + '/', { signal: c.signal, cache: 'no-store' });
-    return r.status < 500;
+    const r = await fetch(u + '/api/workspace', { signal: c.signal, cache: 'no-store' });
+    // Must return 200 OK without requiring an APP_TOKEN or returning 401
+    return r.ok;
   } catch {
     return false;
   } finally {
@@ -76,18 +76,6 @@ async function fetchTunnelUrl(owner, repo) {
           const u = String(parsed?.url || '').replace(/\/$/, '');
           if (RE.test(u)) return u;
         }
-      }
-    } catch {}
-  }
-
-  // 3. Fallback to upstream gist if checking upstream
-  if (owner === UPSTREAM_OWNER) {
-    try {
-      const r = await fetch(FALLBACK_GIST + '?t=' + Date.now(), { cache: 'no-store' });
-      if (r.ok) {
-        const j = await r.json();
-        const u = String(j?.url || '').replace(/\/$/, '');
-        if (RE.test(u)) return u;
       }
     } catch {}
   }

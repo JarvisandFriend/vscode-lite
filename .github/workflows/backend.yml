@@ -49,8 +49,5 @@ jobs:
           git commit -m "tunnel: $URL" || true
           git push -u origin tunnel --force
           echo "PUBLISHED tunnel to branch tunnel" | tee -a $GITHUB_STEP_SUMMARY
-          if [ -n "${{ secrets.GIST_TOKEN }}" ]; then
-            GH_TOKEN=${{ secrets.GIST_TOKEN }} gh api -X PATCH gists/862321431bac372752a422b9cca2fe01 -f "files[tunnel.json][content]={\"url\":\"$URL\",\"ts\":$(date +%s)}" > /dev/null 2>&1 || true
-          fi
       - name: Keep alive (5h)
         run: sleep 18000
