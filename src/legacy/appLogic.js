@@ -250,7 +250,7 @@ export async function bootApp() {
           if (arrow) { arrow.classList.toggle("codicon-chevron-right", isCollapsed); arrow.classList.toggle("codicon-chevron-down", !isCollapsed); }
 
           // Lazy load subtree if empty
-          if (!isCollapsed && childrenContainer.children.length === 0 && node.hasChildren) {
+          if (!isCollapsed && childrenContainer.children.length === 0 && (node.hasChildren ?? node.isDirectory)) {
             try {
               const res = await fetch(`/api/tree?dir=${encodeURIComponent(node.path)}`);
               const data = await res.json();
