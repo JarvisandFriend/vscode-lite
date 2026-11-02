@@ -1,0 +1,7 @@
+name: ts-test
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -s -o /dev/null -w "HTTP %{http_code}\n" -d "client_id=${{ secrets.TS_OAUTH_CLIENT_ID }}" -d "client_secret=${{ secrets.TS_OAUTH_SECRET }}" https://api.tailscale.com/api/v2/oauth/token
