@@ -1,4 +1,5 @@
 import { baseReady, getBase, ensureTunnel } from './tunnel.js';
+import { getToken, login } from './githubAuth.js';
 
 const btn = document.createElement('button');
 btn.style.cssText =
@@ -16,7 +17,13 @@ btn.onclick = async () => {
   busy = true;
   btn.disabled = true;
   try {
-    const ok = await ensureTunnel((m) => set(m, '#555'));
+    if (!getToken()) {
+        await login((code) => {
+          try { navigator.clipboard.writeText(code); } catch {}
+          set('Code ' + code + ' (copied) - enter at github.com/login/device', '#555');
+        });
+      }
+      const ok = await ensureTunnel((m) => set(m, '#555'));
     if (ok) { window.dispatchEvent(new Event('tunnel-ready')); idle(); busy = false; btn.disabled = false; return; }
     set('Timed out · Retry', '#a33');
   } catch (e) {

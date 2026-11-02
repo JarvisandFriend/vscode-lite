@@ -34,6 +34,7 @@ jobs:
       - name: Build web app
         run: npm run build
         env:
+          BASE_URL: /
           VITE_API_URL: https://rtgcortex-vscode-lite.hf.space
           VITE_WS_URL: wss://rtgcortex-vscode-lite.hf.space
           VITE_GH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}

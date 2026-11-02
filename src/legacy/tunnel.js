@@ -1,7 +1,7 @@
+import { getToken } from './githubAuth.js';
 const OWNER = 'engineermarcus', REPO = 'vscode-lite', WF = 'backend.yml';
 const GIST = 'https://gist.githubusercontent.com/engineermarcus/862321431bac372752a422b9cca2fe01/raw/tunnel.json';
 const RE = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
-const GH = import.meta.env.VITE_GH_TOKEN || '';
 
 const state = { http: '', ws: '', tunnel: false };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -44,7 +44,7 @@ const gh = (path, init = {}) =>
   fetch('https://api.github.com/repos/' + OWNER + '/' + REPO + path, {
     ...init,
     headers: {
-      Authorization: 'Bearer ' + GH,
+      Authorization: 'Bearer ' + getToken(),
       Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json',
     },
@@ -62,7 +62,7 @@ export async function ensureTunnel(on) {
   on('Checking tunnel...');
   let u = await gistUrl();
   if (u && await alive(u)) { apply(u); return true; }
-  if (!GH) throw new Error('no VITE_GH_TOKEN in build');
+  if (!getToken()) throw new Error('not logged in');
   if (await runActive()) on('CI already starting...');
   else {
     on('Starting CI...');
