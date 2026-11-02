@@ -33,6 +33,6 @@ jobs:
             sleep 2
           done
           echo "URL: $URL" | tee -a $GITHUB_STEP_SUMMARY
-          [ -z "$URL" ] && cat cf.log
+          if [ -z "$URL" ]; then cat cf.log server.log; exit 1; fi
       - name: Keep alive (5h)
         run: sleep 18000
