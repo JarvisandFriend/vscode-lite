@@ -21,6 +21,12 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
           hostname: vscode-lite
+      - name: Connect Tailscale
+        run: |
+          sudo tailscaled --state=mem: > tailscaled.log 2>&1 &
+          sleep 3
+          sudo tailscale up --authkey="${{ secrets.TS_AUTHKEY }}" --hostname=vscode-lite
+          tailscale status
       - name: Start backend and funnel
         env:
           APP_TOKEN: ${{ secrets.APP_TOKEN }}
