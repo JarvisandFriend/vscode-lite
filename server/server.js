@@ -47,7 +47,7 @@ app.get('/api/tree', h(async (req, res) => {
   const tree = ents.filter(e => !SKIP.has(e.name)).map(e => {
     const d = e.isDirectory();
     return { name: e.name, path: rel(path.join(dir, e.name)), type: d ? 'directory' : 'file',
-             isDirectory: d, children: d ? [] : undefined };   // GUESS: field names
+             isDirectory: d, hasChildren: d, children: d ? [] : undefined };   // GUESS: field names
   }).sort((a, b) => (b.isDirectory - a.isDirectory) || a.name.localeCompare(b.name));
   res.json({ tree });
 }));

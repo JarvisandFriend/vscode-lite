@@ -1,11 +1,9 @@
 const OWNER = 'engineermarcus', REPO = 'vscode-lite', WF = 'backend.yml';
 const GIST = 'https://gist.githubusercontent.com/engineermarcus/862321431bac372752a422b9cca2fe01/raw/tunnel.json';
 const RE = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
-const FB_HTTP = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const FB_WS = (import.meta.env.VITE_WS_URL || '').replace(/\/$/, '');
 const GH = import.meta.env.VITE_GH_TOKEN || '';
 
-const state = { http: FB_HTTP, ws: FB_WS, tunnel: false };
+const state = { http: '', ws: '', tunnel: false };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function alive(u) {
