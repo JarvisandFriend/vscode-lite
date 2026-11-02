@@ -211,7 +211,7 @@ class TerminalManager {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       return `${protocol}//${window.location.host}`;
     })();
-    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/terminal`;
+    const wsUrl = `${wsBase.replace(/\/$/, "")}/ws/terminal?token=${encodeURIComponent(import.meta.env.VITE_TOKEN || "")}`;
     const socket = new WebSocket(wsUrl);
     this.sockets.set(id, socket);
 

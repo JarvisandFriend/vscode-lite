@@ -1,0 +1,2 @@
+{"name":"vscode-lite-server","private":true,"type":"module",
+ "dependencies":{"express":"^4.19.2","ws":"^8.18.0","node-pty":"^1.0.0"}}

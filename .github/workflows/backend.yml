@@ -1,0 +1,36 @@
+name: backend
+on: workflow_dispatch
+permissions:
+  contents: write
+concurrency:
+  group: backend
+  cancel-in-progress: true
+jobs:
+  serve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: cd server && npm install --no-audit --no-fund
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          hostname: vscode-lite
+      - name: Start backend and funnel
+        env:
+          APP_TOKEN: ${{ secrets.APP_TOKEN }}
+        run: |
+          git config user.name dev
+          git config user.email dev@users.noreply.github.com
+          nohup node server/server.js > server.log 2>&1 &
+          sleep 2
+          sudo tailscale funnel --bg 3000
+          HOST=$(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
+          echo "URL: https://$HOST" | tee -a $GITHUB_STEP_SUMMARY
+      - name: Keep alive (5h)
+        run: sleep 18000

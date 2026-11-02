@@ -11,6 +11,7 @@ const _fetch = window.fetch.bind(window);
 window.fetch = (input, init) => {
   if (typeof input === 'string' && input.startsWith('/api/')) {
     input = API_BASE + input;
+    init = { ...(init || {}), headers: { ...((init && init.headers) || {}), 'x-token': import.meta.env.VITE_TOKEN || '' } };
   }
   return _fetch(input, init);
 };
