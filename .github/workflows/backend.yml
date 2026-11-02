@@ -33,6 +33,24 @@ jobs:
             sleep 2
           done
           echo "URL: $URL" | tee -a $GITHUB_STEP_SUMMARY
-          if [ -z "$URL" ]; then cat cf.log server.log; exit 1; fi
+          echo "$URL" | grep -Eq '^https://[a-z0-9-]+\.trycloudflare\.com$' || { echo "bad url: $URL"; cat cf.log server.log; exit 1; }
+          OK=0
+          for i in $(seq 1 30); do
+            CODE=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$URL/" || true)
+            echo "ping $i: $CODE"
+            if [ "$CODE" != "000" ] && [ "$CODE" -lt 500 ]; then OK=1; break; fi
+            sleep 3
+          done
+          if [ "$OK" != 1 ]; then echo "unreachable"; cat cf.log server.log; exit 1; fi
+          echo "REACHABLE: $URL" | tee -a $GITHUB_STEP_SUMMARY
+          rm -rf /tmp/t && mkdir /tmp/t && cd /tmp/t
+          git init -q -b tunnel
+          git config user.name dev
+          git config user.email dev@users.noreply.github.com
+          echo "{\"url\":\"$URL\",\"ts\":$(date +%s)}" > tunnel.json
+          git add tunnel.json
+          git commit -qm "tunnel $URL"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" tunnel
+          cd "$GITHUB_WORKSPACE"
       - name: Keep alive (5h)
         run: sleep 18000
