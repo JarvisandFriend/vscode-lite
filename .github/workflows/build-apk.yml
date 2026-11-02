@@ -38,7 +38,7 @@ jobs:
           VITE_API_URL: https://rtgcortex-vscode-lite.hf.space
           VITE_WS_URL: wss://rtgcortex-vscode-lite.hf.space
       - name: Add Android platform (if missing)
-        run: rm -rf android && npx cap add android
+        run: test -d android/app || npx cap add android
       - name: Sync Capacitor
         run: npx cap sync android
       - name: Generate app icons
@@ -48,21 +48,28 @@ jobs:
         run: |
           sed -i "s/versionCode .*/versionCode ${{ steps.ver.outputs.code }}/" app/build.gradle
           sed -i "s/versionName .*/versionName \"${{ steps.ver.outputs.name }}\"/" app/build.gradle
-      - name: Use stable debug keystore
+      - name: Restore constant debug keystore
+        env:
+          KEYSTORE_BASE64: ${{ vars.DEBUG_KEYSTORE_BASE64 || vars.KEYSTORE_BASE64 || secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
           mkdir -p ~/.android
-          cp keystore/debug.keystore ~/.android/debug.keystore
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+            echo "Loaded constant keystore from repository variable"
+          elif [ -f keystore/debug.keystore ]; then
+            cp keystore/debug.keystore ~/.android/debug.keystore
+            echo "Used local fallback keystore"
+          fi
+          echo "Keystore SHA256: $(sha256sum ~/.android/debug.keystore | awk '{print $1}')"
 
-      - name: Debug signing config
+      - name: Ensure signing configuration in build.gradle
         working-directory: android
         run: |
-          echo "--- build.gradle signing/buildTypes ---"
-          grep -A15 "signingConfigs\|buildTypes" app/build.gradle || echo "no match found"
-          echo "--- keystore in use ---"
-          ls -la ~/.android/debug.keystore
-          sha256sum ~/.android/debug.keystore
-          echo "--- committed keystore for comparison ---"
-          sha256sum ../keystore/debug.keystore
+          if ! grep -q "signingConfigs" app/build.gradle; then
+            sed -i '/buildTypes {/i \    signingConfigs {\n        debug {\n            storeFile file("${System.properties[\x27user.home\x27]}/.android/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }' app/build.gradle
+          fi
+          echo "--- build.gradle signing configuration ---"
+          grep -A14 "signingConfigs\|buildTypes" app/build.gradle
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
