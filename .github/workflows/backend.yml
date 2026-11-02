@@ -43,14 +43,7 @@ jobs:
           done
           if [ "$OK" != 1 ]; then echo "unreachable"; cat cf.log server.log; exit 1; fi
           echo "REACHABLE: $URL" | tee -a $GITHUB_STEP_SUMMARY
-          rm -rf /tmp/t && mkdir /tmp/t && cd /tmp/t
-          git init -q -b tunnel
-          git config user.name dev
-          git config user.email dev@users.noreply.github.com
-          echo "{\"url\":\"$URL\",\"ts\":$(date +%s)}" > tunnel.json
-          git add tunnel.json
-          git commit -qm "tunnel $URL"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" tunnel
-          cd "$GITHUB_WORKSPACE"
+          GH_TOKEN=${{ secrets.GIST_TOKEN }} gh api -X PATCH gists/862321431bac372752a422b9cca2fe01 -f "files[tunnel.json][content]={\"url\":\"$URL\",\"ts\":$(date +%s)}" > /dev/null
+          echo "PUBLISHED gist 862321431bac372752a422b9cca2fe01" | tee -a $GITHUB_STEP_SUMMARY
       - name: Keep alive (5h)
         run: sleep 18000
