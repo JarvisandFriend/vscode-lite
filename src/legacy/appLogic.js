@@ -25,7 +25,7 @@ export async function bootApp() {
   await editorManager.init();
 
   const terminalManager = new TerminalManager("terminal-container");
-  terminalManager.createTerminal();
+  baseReady.then(() => terminalManager.createTerminal());
 
   // State
   let workspace = { path: "", name: "", gitBranch: "", isGit: false };
