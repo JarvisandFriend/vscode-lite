@@ -15,28 +15,24 @@ jobs:
         with:
           node-version: 20
       - run: cd server && npm install --no-audit --no-fund
-      - uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-          hostname: vscode-lite
-      - name: Connect Tailscale
-        run: |
-          sudo tailscaled --state=mem: > tailscaled.log 2>&1 &
-          sleep 3
-          sudo tailscale up --authkey="${{ secrets.TS_AUTHKEY }}" --hostname=vscode-lite
-          tailscale status
-      - name: Start backend and funnel
+      - name: Start backend and Cloudflare tunnel
         env:
           APP_TOKEN: ${{ secrets.APP_TOKEN }}
         run: |
           git config user.name dev
           git config user.email dev@users.noreply.github.com
           nohup node server/server.js > server.log 2>&1 &
-          sleep 2
-          sudo tailscale funnel --bg 3000
-          HOST=$(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
-          echo "URL: https://$HOST" | tee -a $GITHUB_STEP_SUMMARY
+          sleep 3
+          curl -fsSL -o cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x cloudflared
+          nohup ./cloudflared tunnel --no-autoupdate --url http://localhost:3000 > cf.log 2>&1 &
+          URL=""
+          for i in $(seq 1 30); do
+            URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' cf.log | head -1)
+            [ -n "$URL" ] && break
+            sleep 2
+          done
+          echo "URL: $URL" | tee -a $GITHUB_STEP_SUMMARY
+          [ -z "$URL" ] && cat cf.log
       - name: Keep alive (5h)
         run: sleep 18000
