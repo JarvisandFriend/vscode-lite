@@ -84,7 +84,8 @@ async function postOAuth(path, data) {
  * 1) Enter a Personal Access Token (classic with repo & workflow scopes), or
  * 2) Authorize via GitHub Device Code flow.
  */
-export function login(promptMsg = '') {
+export function login(promptMsg = '', opts = {}) {
+  const required = !!opts.required;
   return new Promise((resolve, reject) => {
     // If modal already exists, remove it
     const existing = document.getElementById('gh-auth-modal');
@@ -93,7 +94,7 @@ export function login(promptMsg = '') {
     const overlay = document.createElement('div');
     overlay.id = 'gh-auth-modal';
     overlay.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100000;display:flex;' +
+      'position:fixed;inset:0;background:' + (required ? '#0b0f19' : 'rgba(0,0,0,0.75)') + ';z-index:100000;display:flex;' +
       'align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;';
 
     const card = document.createElement('div');
@@ -104,50 +105,34 @@ export function login(promptMsg = '') {
     const user = getUser();
 
     card.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <svg height="26" viewBox="0 0 16 16" width="26" style="fill:#ffffff;">
-            <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
-          </svg>
-          <h2 style="margin:0;font-size:17px;font-weight:600;color:#ffffff;">GitHub Authentication</h2>
-        </div>
-        <button id="gh-auth-close" style="background:transparent;border:0;color:#888;font-size:20px;cursor:pointer;padding:4px;line-height:1;">&times;</button>
-      </div>
-
-      ${promptMsg ? `<div style="background:#2a2d2e;border-left:3px solid #007acc;padding:8px 12px;margin-bottom:16px;font-size:12px;color:#ddd;line-height:1.4;">${promptMsg}</div>` : ''}
-
-      <div style="font-size:13px;line-height:1.5;margin-bottom:16px;color:#aaa;">
-        Sign in to your GitHub account so VS Code Lite can trigger your cloud dev environment workflow in your repository.
-      </div>
-
-      <!-- Token Input Section -->
-      <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:#e1e1e1;">Personal Access Token (Recommended)</label>
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
-          <input id="gh-token-input" type="password" placeholder="ghp_... or github_pat_..." style="flex:1;background:#2a2d2e;border:1px solid #3c3c3c;border-radius:4px;padding:8px 10px;color:#fff;font-size:13px;outline:none;" />
-          <button id="gh-token-submit" style="background:#0e639c;border:0;border-radius:4px;color:#fff;font-size:13px;font-weight:500;padding:8px 14px;cursor:pointer;white-space:nowrap;">Sign In</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;">
-          <span style="color:#777;">Requires <code>repo</code> & <code>workflow</code> scopes</span>
-          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=VSCodeLite" target="_blank" rel="noopener noreferrer" style="color:#3794ff;text-decoration:none;">Generate Token ↗</a>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;margin:16px 0;color:#555;font-size:11px;text-transform:uppercase;">
-        <div style="flex:1;height:1px;background:#333;"></div>
-        <span>or</span>
-        <div style="flex:1;height:1px;background:#333;"></div>
-      </div>
-
-      <!-- Device Code Section -->
       <div style="text-align:center;">
-        <button id="gh-device-btn" style="background:#333;border:1px solid #444;border-radius:4px;color:#ccc;font-size:12px;padding:8px 16px;cursor:pointer;width:100%;">
-          Use GitHub Device Code Flow
-        </button>
-        <div id="gh-device-status" style="margin-top:10px;font-size:12px;display:none;"></div>
+        <svg height="44" viewBox="0 0 16 16" width="44" style="fill:#ffffff;">
+          <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
+        </svg>
+        <h1 style="margin:14px 0 4px;font-size:22px;font-weight:600;color:#ffffff;">VS Code Lite</h1>
+        <div style="font-size:13px;color:#8b949e;margin-bottom:26px;">Sign in to continue</div>
       </div>
 
-      <div id="gh-auth-error" style="display:none;margin-top:14px;padding:8px 12px;background:#5a1d1d;border:1px solid #a33;border-radius:4px;color:#ffcccc;font-size:12px;"></div>
+      <button id="gh-device-btn" style="display:block;width:100%;background:#238636;border:0;border-radius:8px;color:#fff;font-size:15px;font-weight:600;padding:14px 16px;cursor:pointer;">Continue with GitHub</button>
+      <div id="gh-device-status" style="margin-top:14px;font-size:12px;display:none;text-align:center;"></div>
+
+      <div style="text-align:center;margin-top:18px;">
+        <a id="gh-token-toggle" href="#" style="color:#58a6ff;font-size:12px;text-decoration:none;">Use an access token instead</a>
+      </div>
+
+      <div id="gh-token-row" style="display:none;margin-top:14px;">
+        <div style="display:flex;gap:8px;">
+          <input id="gh-token-input" type="password" placeholder="ghp_... or github_pat_..." style="flex:1;min-width:0;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:9px 10px;color:#fff;font-size:13px;outline:none;" />
+          <button id="gh-token-submit" style="background:#0e639c;border:0;border-radius:6px;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap;">Sign In</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#6e7681;">
+          Scopes: repo, workflow &middot;
+          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=VSCodeLite" target="_blank" rel="noopener noreferrer" style="color:#58a6ff;text-decoration:none;">Generate ↗</a>
+        </div>
+      </div>
+
+      <div id="gh-auth-error" style="display:none;margin-top:14px;padding:8px 12px;background:#5a1d1d;border:1px solid #a33;border-radius:6px;color:#ffcccc;font-size:12px;"></div>
+      ${required ? '' : '<button id="gh-auth-close" style="position:absolute;top:10px;right:12px;background:transparent;border:0;color:#888;font-size:22px;cursor:pointer;padding:4px;line-height:1;">&times;</button>'}
     `;
 
     overlay.appendChild(card);
@@ -158,8 +143,17 @@ export function login(promptMsg = '') {
       reject(new Error('Authentication cancelled'));
     };
 
-    card.querySelector('#gh-auth-close').onclick = close;
-    overlay.onclick = (e) => { if (e.target === overlay) close(); };
+    const closeBtn = card.querySelector('#gh-auth-close');
+    if (closeBtn) closeBtn.onclick = close;
+    if (!required) overlay.onclick = (e) => { if (e.target === overlay) close(); };
+
+    const tokenRow = card.querySelector('#gh-token-row');
+    card.querySelector('#gh-token-toggle').onclick = (e) => {
+      e.preventDefault();
+      const open = tokenRow.style.display !== 'none';
+      tokenRow.style.display = open ? 'none' : 'block';
+      if (!open) card.querySelector('#gh-token-input').focus();
+    };
 
     const errBox = card.querySelector('#gh-auth-error');
     const showErr = (msg) => {

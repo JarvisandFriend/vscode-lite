@@ -32,6 +32,7 @@ const setStatus = (text, bg, clickable = true) => {
 };
 
 function updateUI() {
+  container.style.display = getToken() ? 'flex' : 'none';
   const user = getUser();
   const token = getToken();
 
@@ -100,4 +101,22 @@ baseReady.then(() => {
   updateUI();
 });
 
-window.addEventListener('github-auth-change', updateUI);
+// Hard gate: the app is unusable without a GitHub sign-in
+let gating = false;
+async function enforceLogin() {
+  if (gating || getToken()) return;
+  gating = true;
+  try {
+    await login('', { required: true });
+  } catch {}
+  gating = false;
+  updateUI();
+  if (getToken() && !getBase().tunnel) btn.click();
+}
+
+window.addEventListener('github-auth-change', () => {
+  updateUI();
+  enforceLogin();
+});
+
+enforceLogin();
