@@ -1,8 +1,17 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
-const CLIENT_ID = 'Iv23li0rcM30ANY7BgWG';
+const CLIENT_ID = 'Ov23liJFtvgYy6olWXCx';
 const TOKEN_KEY = 'gh_token';
 const USER_KEY = 'gh_user';
+
+// Tokens from a previous client ID (old GitHub App) can't dispatch workflows: drop them once
+try {
+  if (localStorage.getItem('gh_client') !== CLIENT_ID) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.setItem('gh_client', CLIENT_ID);
+  }
+} catch {}
 const native = Capacitor.isNativePlatform();
 const BASE = native ? 'https://github.com' : '/gh-oauth';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -116,21 +125,6 @@ export function login(promptMsg = '', opts = {}) {
       <button id="gh-device-btn" style="display:block;width:100%;background:#238636;border:0;border-radius:8px;color:#fff;font-size:15px;font-weight:600;padding:14px 16px;cursor:pointer;">Continue with GitHub</button>
       <div id="gh-device-status" style="margin-top:14px;font-size:12px;display:none;text-align:center;"></div>
 
-      <div style="text-align:center;margin-top:18px;">
-        <a id="gh-token-toggle" href="#" style="color:#58a6ff;font-size:12px;text-decoration:none;">Use an access token instead</a>
-      </div>
-
-      <div id="gh-token-row" style="display:none;margin-top:14px;">
-        <div style="display:flex;gap:8px;">
-          <input id="gh-token-input" type="password" placeholder="ghp_... or github_pat_..." style="flex:1;min-width:0;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:9px 10px;color:#fff;font-size:13px;outline:none;" />
-          <button id="gh-token-submit" style="background:#0e639c;border:0;border-radius:6px;color:#fff;font-size:13px;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap;">Sign In</button>
-        </div>
-        <div style="margin-top:8px;font-size:11px;color:#6e7681;">
-          Scopes: repo, workflow &middot;
-          <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=VSCodeLite" target="_blank" rel="noopener noreferrer" style="color:#58a6ff;text-decoration:none;">Generate ↗</a>
-        </div>
-      </div>
-
       <div id="gh-auth-error" style="display:none;margin-top:14px;padding:8px 12px;background:#5a1d1d;border:1px solid #a33;border-radius:6px;color:#ffcccc;font-size:12px;"></div>
       ${required ? '' : '<button id="gh-auth-close" style="position:absolute;top:10px;right:12px;background:transparent;border:0;color:#888;font-size:22px;cursor:pointer;padding:4px;line-height:1;">&times;</button>'}
     `;
@@ -147,59 +141,11 @@ export function login(promptMsg = '', opts = {}) {
     if (closeBtn) closeBtn.onclick = close;
     if (!required) overlay.onclick = (e) => { if (e.target === overlay) close(); };
 
-    const tokenRow = card.querySelector('#gh-token-row');
-    card.querySelector('#gh-token-toggle').onclick = (e) => {
-      e.preventDefault();
-      const open = tokenRow.style.display !== 'none';
-      tokenRow.style.display = open ? 'none' : 'block';
-      if (!open) card.querySelector('#gh-token-input').focus();
-    };
-
     const errBox = card.querySelector('#gh-auth-error');
     const showErr = (msg) => {
       errBox.textContent = msg;
       errBox.style.display = 'block';
     };
-
-    // Personal Access Token Handler
-    const tokenInput = card.querySelector('#gh-token-input');
-    const submitBtn = card.querySelector('#gh-token-submit');
-    const handleTokenSubmit = async () => {
-      const val = tokenInput.value.trim();
-      if (!val) {
-        showErr('Please enter a GitHub Personal Access Token.');
-        return;
-      }
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Verifying...';
-      errBox.style.display = 'none';
-
-      try {
-        const r = await fetch('https://api.github.com/user', {
-          headers: {
-            Authorization: 'Bearer ' + val,
-            Accept: 'application/vnd.github+json',
-          },
-        });
-        if (!r.ok) throw new Error('Invalid token (status ' + r.status + ')');
-        const user = await r.json();
-        setToken(val);
-        localStorage.setItem(USER_KEY, JSON.stringify({
-          login: user.login,
-          name: user.name || user.login,
-          avatar_url: user.avatar_url,
-        }));
-        overlay.remove();
-        resolve(val);
-      } catch (e) {
-        showErr(e.message || 'Failed to verify token with GitHub');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign In';
-      }
-    };
-
-    submitBtn.onclick = handleTokenSubmit;
-    tokenInput.onkeydown = (e) => { if (e.key === 'Enter') handleTokenSubmit(); };
 
     // Device Flow Handler
     const deviceBtn = card.querySelector('#gh-device-btn');
