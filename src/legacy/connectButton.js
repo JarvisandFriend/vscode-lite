@@ -20,6 +20,36 @@ userBadge.style.cssText =
   'padding:4px 8px;border:0;border-radius:12px;font:11px system-ui,-apple-system,sans-serif;' +
   'color:#aaa;background:transparent;cursor:pointer;display:none;align-items:center;gap:5px;';
 
+let hidden = false;
+try { hidden = localStorage.getItem('shell_pill_hidden') === '1'; } catch {}
+
+const toggle = document.createElement('button');
+toggle.id = 'shell-pill-toggle';
+toggle.style.cssText =
+  'width:26px;height:26px;border:0;border-radius:50%;background:#333;color:#ccc;' +
+  'font:14px system-ui,sans-serif;cursor:pointer;padding:0;line-height:1;flex:none;';
+toggle.onclick = () => {
+  hidden = !hidden;
+  try { localStorage.setItem('shell_pill_hidden', hidden ? '1' : '0'); } catch {}
+  updateUI();
+};
+
+function applyHidden() {
+  if (hidden) {
+    btn.style.display = 'none';
+    userBadge.style.display = 'none';
+    toggle.textContent = '\u25CF';
+    toggle.style.color = getBase().tunnel ? '#3fb950' : '#888';
+    toggle.title = 'Show shell status';
+  } else {
+    btn.style.display = 'flex';
+    toggle.textContent = '\u2013';
+    toggle.style.color = '#ccc';
+    toggle.title = 'Hide';
+  }
+}
+
+container.appendChild(toggle);
 container.appendChild(btn);
 container.appendChild(userBadge);
 
@@ -29,6 +59,7 @@ const setStatus = (text, bg, clickable = true) => {
   btn.textContent = text;
   if (bg) btn.style.background = bg;
   btn.disabled = !clickable;
+  if (hidden && /^(Error|Timed out)/.test(text)) { hidden = false; applyHidden(); }
 };
 
 function updateUI() {
@@ -59,6 +90,7 @@ function updateUI() {
   } else {
     setStatus('○ Connect shell', '#444');
   }
+  applyHidden();
 }
 
 btn.onclick = async () => {

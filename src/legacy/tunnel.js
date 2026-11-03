@@ -126,53 +126,98 @@ async function ensureFork(userLogin, onProgress) {
     return true;
   }
 
-  onProgress('Checking repository in your account...');
-  const check = await fetch(`https://api.github.com/repos/${userLogin}/${REPO}`, {
-    headers: { Authorization: 'Bearer ' + getToken(), Accept: 'application/vnd.github+json' },
-  });
+  const H = {
+    Authorization: 'Bearer ' + getToken(),
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+  };
+  const repoUrl = `https://api.github.com/repos/${userLogin}/${REPO}`;
 
-  if (check.ok) return true;
+  onProgress('Checking repository in your account...');
+  const check = await fetch(repoUrl, { headers: H });
+  if (check.ok) {
+    const info = await check.json().catch(() => ({}));
+    if (info.fork) {
+      onProgress('Syncing your fork...');
+      try {
+        await fetch(repoUrl + '/merge-upstream', {
+          method: 'POST',
+          headers: H,
+          body: JSON.stringify({ branch: 'main' }),
+        });
+      } catch {}
+    }
+    return true;
+  }
 
   onProgress(`Forking ${UPSTREAM_OWNER}/${REPO} to your account...`);
   const forkRes = await fetch(`https://api.github.com/repos/${UPSTREAM_OWNER}/${REPO}/forks`, {
     method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + getToken(),
-      Accept: 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
+    headers: H,
     body: JSON.stringify({ default_branch_only: true }),
   });
-
   if (!forkRes.ok && forkRes.status !== 202) {
     const err = await forkRes.json().catch(() => ({}));
-    throw new Error(err.message || 'Failed to fork repository to your account.');
+    throw new Error('Fork failed (' + forkRes.status + '): ' + (err.message || 'unknown error'));
   }
 
-  // Poll for fork creation to finish
-  for (let i = 1; i <= 15; i++) {
+  let ready = false;
+  for (let i = 1; i <= 45; i++) {
     onProgress(`Creating fork (${i * 2}s)...`);
     await sleep(2000);
-    const r = await fetch(`https://api.github.com/repos/${userLogin}/${REPO}`, {
-      headers: { Authorization: 'Bearer ' + getToken(), Accept: 'application/vnd.github+json' },
-    });
-    if (r.ok) {
-      // Enable Actions on the new fork
-      try {
-        await fetch(`https://api.github.com/repos/${userLogin}/${REPO}/actions/permissions`, {
-          method: 'PUT',
-          headers: {
-            Authorization: 'Bearer ' + getToken(),
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ enabled: true }),
-        });
-      } catch {}
-      return true;
-    }
+    const r = await fetch(repoUrl, { headers: H });
+    if (r.ok) { ready = true; break; }
   }
+  if (!ready) throw new Error('Fork is taking too long. Wait a minute and tap Connect again.');
+
+  try {
+    await fetch(repoUrl + '/actions/permissions', {
+      method: 'PUT',
+      headers: H,
+      body: JSON.stringify({ enabled: true }),
+    });
+  } catch {}
   return true;
+}
+
+async function dispatchWorkflow(owner, repo, onProgress) {
+  const base = `https://api.github.com/repos/${owner}/${repo}`;
+  const H = {
+    Authorization: 'Bearer ' + getToken(),
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+  };
+
+  // Fresh forks list their workflows late and start with them disabled
+  for (let i = 1; i <= 10; i++) {
+    const w = await fetch(`${base}/actions/workflows/${WF}`, { headers: H });
+    if (w.ok) {
+      const j = await w.json().catch(() => ({}));
+      if (j.state && j.state !== 'active') {
+        onProgress('Enabling workflow...');
+        await fetch(`${base}/actions/workflows/${WF}/enable`, { method: 'PUT', headers: H });
+      }
+      break;
+    }
+    onProgress(`Waiting for workflow to appear (${i * 3}s)...`);
+    await sleep(3000);
+  }
+
+  let last = 'Workflow dispatch failed';
+  for (let i = 1; i <= 6; i++) {
+    onProgress('Dispatching backend workflow in ' + owner + '/' + repo + '...');
+    const r = await fetch(`${base}/actions/workflows/${WF}/dispatches`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status === 204) return;
+    const err = await r.json().catch(() => ({}));
+    last = 'Workflow dispatch failed (' + r.status + '): ' + (err.message || 'unknown error');
+    if (r.status !== 404 && r.status !== 422) break;
+    await sleep(4000);
+  }
+  throw new Error(last);
 }
 
 export async function ensureTunnel(onProgress) {
@@ -203,20 +248,7 @@ export async function ensureTunnel(onProgress) {
   if (await runActive(owner, repo)) {
     onProgress('CI already starting on ' + owner + '...');
   } else {
-    onProgress('Dispatching backend workflow in ' + owner + '/' + repo + '...');
-    const r = await ghFetch(
-      '/actions/workflows/' + WF + '/dispatches',
-      {
-        method: 'POST',
-        body: JSON.stringify({ ref: 'main' }),
-      },
-      owner,
-      repo
-    );
-    if (r.status !== 204) {
-      const err = await r.json().catch(() => ({}));
-      throw new Error(err.message || 'Workflow dispatch failed (' + r.status + ')');
-    }
+    await dispatchWorkflow(owner, repo, onProgress);
   }
 
   // Poll until tunnel URL is published and alive

@@ -19,7 +19,27 @@ jobs:
         run: |
           git config user.name dev
           git config user.email dev@users.noreply.github.com
-          nohup node server/server.js > server.log 2>&1 &
+          mkdir -p "$HOME/workspace"
+          (
+            set -e
+            cd "$HOME/workspace"
+            git init -q -b workspace
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git remote add origin "https://github.com/${{ github.repository }}.git"
+            git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' '${{ github.token }}' | base64 -w0)"
+            if git fetch -q origin workspace; then
+              git reset -q --hard FETCH_HEAD
+            else
+              printf 'node_modules/\n.env\n*.log\n' > .gitignore
+              printf '# Workspace\n' > README.md
+              git add -A
+              git commit -qm "init workspace"
+            fi
+            git push -q -u origin workspace
+          ) || echo "WARN: workspace setup failed"
+          nohup bash -c 'while true; do sleep 60; cd "$HOME/workspace" || continue; git add -A; git diff --cached --quiet || { git commit -qm autosave && git push -q origin workspace; }; done' > autosave.log 2>&1 &
+          WORKSPACE="$HOME/workspace" nohup node server/server.js > server.log 2>&1 &
           sleep 3
           curl -fsSL -o cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
           chmod +x cloudflared
@@ -51,3 +71,9 @@ jobs:
           echo "PUBLISHED tunnel to branch tunnel" | tee -a $GITHUB_STEP_SUMMARY
       - name: Keep alive (5h)
         run: sleep 18000
+      - name: Save workspace
+        if: always()
+        run: |
+          cd "$HOME/workspace" 2>/dev/null || exit 0
+          git add -A
+          git diff --cached --quiet || { git commit -qm "save on shutdown"; git push -q origin workspace || true; }
